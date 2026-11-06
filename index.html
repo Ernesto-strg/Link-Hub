@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Link-Hub</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0f1115; --panel: #161b22; --card: #1c222b; --card-hover: #222a35;
+  --border: #30363d; --text: #c9d1d9; --muted: #8b949e; --strong: #f0f6fc;
+  --accent: #58a6ff; --ok: #238636; --ok-hover: #2ea043; --danger: #f85149;
+  --radius: 8px;
+}
+* { box-sizing: border-box; }
+body {
+  font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px;
+  background: var(--bg); color: var(--text);
+}
+h1, h2, h3 { color: var(--strong); margin: 0; }
+svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 24px; }
+h1 { font-size: 24px; margin-right: auto; }
+#hubSelect { width: auto; max-width: 180px; }
+.search { position: relative; flex: 1 1 220px; max-width: 340px; }
+.search svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+.search input { padding-left: 32px; }
+.bar { display: flex; gap: 8px; }
+
+/* Buttons */
+button { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; border: 1px solid transparent; padding: 7px 13px; color: #fff; background: var(--ok); transition: background .15s; }
+button:hover { background: var(--ok-hover); }
+.btn-secondary { background: #21262d; border-color: var(--border); color: var(--text); }
+.btn-secondary:hover { background: #30363d; }
+.btn-icon { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; background: transparent; color: var(--muted); border-radius: 6px; }
+.btn-icon:hover { background: #30363d; color: var(--strong); }
+.btn-icon.danger:hover { color: var(--danger); background: rgba(248,81,73,.12); }
+.btn-icon.done { color: #3fb950; }
+
+/* Inputs */
+input, textarea, select { font: inherit; font-size: 14px; width: 100%; padding: 8px 10px; background: #0d1117; color: var(--strong); border: 1px solid var(--border); border-radius: 6px; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+textarea { resize: vertical; }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+.field { margin-bottom: 14px; }
+
+/* Banner für ?text= */
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 24px; background: #1a2230; border: 1px solid var(--accent); border-radius: var(--radius); }
+.banner b { font-size: 13px; white-space: nowrap; }
+.banner code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 6px 10px; background: #0d1117; border-radius: 4px; color: var(--accent); font-size: 13px; }
+
+/* Gruppen */
+.group { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: var(--radius); padding: 16px 18px 18px; margin-bottom: 20px; }
+.group-head { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+.group-head h2 { font-size: 17px; margin-right: 4px; overflow-wrap: anywhere; }
+.count { font-size: 13px; color: var(--muted); margin-right: auto; }
+.group-head .btn-secondary { display: flex; align-items: center; gap: 5px; margin-right: 4px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.empty { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* Karten: der ganze Kasten ist klickbar, Aktionen liegen darüber */
+.card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 14px 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); transition: background .15s, border-color .15s; }
+.card:hover { background: var(--card-hover); border-color: var(--c); }
+.card a { color: var(--accent); font-size: 18px; line-height: 1.3; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.card a::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
+.card a:focus-visible { outline: none; }
+.card:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.host { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.query { position: relative; z-index: 1; display: flex; gap: 6px; margin-top: 8px; }
+.query input { padding: 6px 9px; font-size: 13px; }
+.query button { display: grid; place-items: center; padding: 0 10px; }
+.check { display: flex; align-items: flex-start; gap: 10px; color: var(--text); font-weight: 400; font-size: 14px; cursor: pointer; }
+.check input { width: auto; margin-top: 4px; }
+.hint { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 2px; margin-top: auto; padding-top: 6px; opacity: .55; transition: opacity .15s; }
+.card:hover .actions, .card:focus-within .actions { opacity: 1; }
+@media (hover: none) { .actions { opacity: 1; } }
+
+.no-results { text-align: center; color: var(--muted); padding: 50px 0; }
+
+/* Dialoge */
+dialog { width: min(420px, calc(100vw - 32px)); padding: 22px; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.55); }
+dialog::backdrop { background: rgba(0,0,0,.65); }
+dialog h3 { font-size: 18px; margin-bottom: 16px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.swatches { display: flex; gap: 10px; }
+.swatches input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.swatches label { width: 28px; height: 28px; margin: 0; border-radius: 50%; background: var(--c); cursor: pointer; border: 2px solid var(--panel); }
+.swatches input:checked + label { box-shadow: 0 0 0 2px var(--strong); }
+.swatches input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 3px; }
+.error { color: var(--danger); font-size: 13px; margin: -6px 0 12px; min-height: 0; }
+
+/* Toast */
+#toast { position: fixed; left: 50%; bottom: 24px; translate: -50% 0; display: none; align-items: center; gap: 12px; padding: 10px 14px; background: #21262d; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.5); font-size: 14px; z-index: 10; }
+#toast.show { display: flex; }
+#toast button { padding: 4px 10px; }
+
+@media (max-width: 520px) {
+  .search { max-width: none; order: 3; flex-basis: 100%; }
+  .group-head .label-add { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Link-Hub</h1>
+  <select id="hubSelect" aria-label="Hub wechseln" title="Hub wechseln"></select>
+  <div class="search">
+    <svg viewBox="0 0 16 16"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+    <input type="search" id="search" placeholder="Links durchsuchen …" aria-label="Links durchsuchen" autocomplete="off">
+  </div>
+  <div class="bar">
+    <button class="btn-secondary" id="newGroup">+ Neue Gruppe</button>
+    <button class="btn-secondary" id="export" title="Alle Daten als Datei sichern">Sichern</button>
+    <button class="btn-secondary" id="import" title="Gesicherte Datei laden">Laden</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<div class="banner" id="banner" hidden>
+  <b>Text aus URL:</b>
+  <code id="bannerText"></code>
+  <button class="btn-icon" id="bannerCopy" title="Kopieren" aria-label="Text kopieren"></button>
+</div>
+
+<main id="groups"></main>
+
+<!-- Dialog: Link -->
+<dialog id="linkDialog">
+  <form id="linkForm" novalidate>
+    <h3 id="linkHeading">Link hinzufügen</h3>
+    <div class="field"><label for="linkTitle">Titel</label><input id="linkTitle" placeholder="z. B. GitHub" required></div>
+    <div class="field"><label for="linkUrl">URL</label><input id="linkUrl" placeholder="github.com" inputmode="url" autocapitalize="off" required></div>
+    <div class="field"><label for="linkGroup">Gruppe</label><select id="linkGroup"></select></div>
+    <div class="field"><label class="check"><input type="checkbox" id="linkInput"><span>Eingabefeld auf der Karte<span class="hint">Der Text wird an die URL angehängt. Mit {} legst du die Stelle selbst fest, z. B. google.com/search?q={}</span></span></label></div>
+    <p class="error" id="linkError" role="alert"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" data-close>Abbrechen</button>
+      <button type="submit">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Dialog: Gruppe -->
+<dialog id="groupDialog">
+  <form id="groupForm" novalidate>
+    <h3 id="groupHeading">Neue Gruppe</h3>
+    <div class="field"><label for="groupName">Gruppenname</label><input id="groupName" placeholder="z. B. Arbeit, Tools …" required></div>
+    <div class="field"><label>Farbe</label><div class="swatches" id="swatches"></div></div>
+    <p class="error" id="groupError" role="alert"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-secondary" data-close>Abbrechen</button>
+      <button type="submit">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button class="btn-secondary" id="toastUndo" hidden>Rückgängig</button></div>
+
+<script>
+/* Hub aus der URL: ?hub=arbeit → eigener Speicher. Ohne Parameter bleibt alles wie bisher. */
+const PREFIX = 'linkHubV2';
+const HUB = (new URLSearchParams(location.search).get('hub') || '').trim().toLowerCase().slice(0, 40);
+const KEY = HUB ? `${PREFIX}:${HUB}` : PREFIX, OLD_KEY = 'cleanHubDataColored';
+const COLORS = ['#58a6ff', '#3fb950', '#d29922', '#bc8cff', '#f78166', '#39c5cf'];
+const ICON = {
+  copy: '<svg viewBox="0 0 16 16"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>',
+  check: '<svg viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>',
+  edit: '<svg viewBox="0 0 16 16"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/></svg>',
+  trash: '<svg viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.59a.25.25 0 0 0 .248-.225l.66-6.6a.75.75 0 0 1 1.492.15l-.66 6.6A1.75 1.75 0 0 1 10.995 15h-5.99a1.75 1.75 0 0 1-1.742-1.575l-.66-6.6a.75.75 0 0 1 1.493-.15ZM6.5 5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0v-6.5A.75.75 0 0 1 6.5 5Zm3 0a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0v-6.5A.75.75 0 0 1 9.5 5Z"/></svg>'
+};
+
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+/* ---------- Daten ---------- */
+function defaults() {
+  return { groups: [{ id: uid(), name: 'Allgemein', color: COLORS[0] }, { id: uid(), name: 'Arbeit', color: COLORS[1] }], links: [] };
+}
+function migrate(old) { // altes Format: Links verweisen per Gruppenname
+  const groups = (old.groups || []).map(g => typeof g === 'string' ? { name: g } : g)
+    .map(g => ({ id: uid(), name: String(g.name), color: g.color || COLORS[0] }));
+  const links = (old.links || []).map(l => {
+    const g = groups.find(g => g.name === l.group);
+    return g && { id: uid(), gid: g.id, title: String(l.title), url: String(l.url) };
+  }).filter(Boolean);
+  return { groups, links };
+}
+function load() {
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const d = JSON.parse(s); return { groups: d.groups || [], links: d.links || [] }; }
+    const o = !HUB && localStorage.getItem(OLD_KEY);
+    if (o) return migrate(JSON.parse(o));
+  } catch (e) { /* beschädigte Daten: neu starten */ }
+  return defaults();
+}
+let state = load();
+let query = '';
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { toast('Speichern nicht möglich – Browser-Speicher ist blockiert oder voll.'); }
+}
+
+/* ---------- Hilfsfunktionen ---------- */
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v; // nur für feste Icons
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  n.append(...kids.filter(k => k != null));
+  return n;
+}
+function normalizeUrl(input) {
+  let s = input.trim();
+  if (!s) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = 'https://' + s;
+  try { const u = new URL(s); return /^https?:$/.test(u.protocol) ? s : null; } catch (e) { return null; }
+}
+function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+function safeHref(url) { return normalizeUrl(url) || '#'; }
+
+async function copyText(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const t = el('textarea', { style: 'position:fixed;opacity:0' }); t.value = text;
+    document.body.append(t); t.select(); document.execCommand('copy'); t.remove();
+  }
+  const orig = btn.innerHTML;
+  btn.innerHTML = ICON.check; btn.classList.add('done');
+  setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('done'); }, 1400);
+}
+
+let toastTimer;
+function toast(msg, undo) {
+  $('#toastMsg').textContent = msg;
+  const u = $('#toastUndo');
+  u.hidden = !undo;
+  u.onclick = () => { undo(); hideToast(); };
+  $('#toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, undo ? 7000 : 3500);
+}
+function hideToast() { $('#toast').classList.remove('show'); }
+
+/* ---------- Rendern ---------- */
+function render() {
+  const root = $('#groups');
+  root.replaceChildren();
+  const q = query.trim().toLowerCase();
+  let visible = 0;
+
+  state.groups.forEach(g => {
+    let links = state.links.filter(l => l.gid === g.id);
+    const total = links.length;
+    if (q) {
+      const groupHit = g.name.toLowerCase().includes(q);
+      links = links.filter(l => groupHit || `${l.title} ${l.url}`.toLowerCase().includes(q));
+      if (!links.length) return;
+    }
+    visible++;
+
+    const head = el('div', { class: 'group-head' },
+      el('h2', {}, g.name),
+      el('span', { class: 'count' }, q ? `${links.length} von ${total}` : String(total)),
+      el('button', { class: 'btn-secondary', onclick: () => openLink(null, g.id) }, '+ ', el('span', { class: 'label-add' }, 'Link')),
+      el('button', { class: 'btn-icon', title: 'Gruppe bearbeiten', 'aria-label': `Gruppe ${g.name} bearbeiten`, html: ICON.edit, onclick: () => openGroup(g.id) }),
+      el('button', { class: 'btn-icon danger', title: 'Gruppe löschen', 'aria-label': `Gruppe ${g.name} löschen`, html: ICON.trash, onclick: () => deleteGroup(g.id) })
+    );
+
+    const body = links.length
+      ? el('div', { class: 'grid' }, ...links.map(card))
+      : el('p', { class: 'empty' }, 'Noch keine Links in dieser Gruppe.');
+
+    root.append(el('section', { class: 'group', style: `--c:${g.color}` }, head, body));
+  });
+
+  if (!visible) {
+    root.append(el('p', { class: 'no-results' }, q ? `Keine Treffer für „${query.trim()}“.` : 'Noch keine Gruppen. Lege mit „+ Neue Gruppe“ die erste an.'));
+  }
+}
+
+function buildUrl(base, value) {
+  const v = value.trim();
+  if (!v) return base;
+  if (base.includes('{}')) return base.replaceAll('{}', encodeURIComponent(v));
+  return base + encodeURI(v);
+}
+function queryForm(l) {
+  const input = el('input', { type: 'text', placeholder: 'Eingabe …', 'aria-label': `Eingabe für ${l.title}`, autocomplete: 'off' });
+  return el('form', { class: 'query', onsubmit: e => {
+    e.preventDefault();
+    const base = normalizeUrl(l.url);
+    if (base) window.open(buildUrl(base, input.value), '_blank', 'noopener');
+  } }, input, el('button', { type: 'submit', title: 'Öffnen', 'aria-label': 'Öffnen', html: '<svg viewBox="0 0 16 16"><path d="M8.22 2.97a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l2.97-2.97H3.75a.75.75 0 0 1 0-1.5h7.44L8.22 4.03a.75.75 0 0 1 0-1.06Z"/></svg>' }));
+}
+
+function card(l) {
+  const actions = el('div', { class: 'actions' });
+  actions.append(
+    el('button', { class: 'btn-icon', title: 'Bearbeiten', 'aria-label': `${l.title} bearbeiten`, html: ICON.edit, onclick: () => openLink(l.id) }),
+    el('button', { class: 'btn-icon danger', title: 'Löschen', 'aria-label': `${l.title} löschen`, html: ICON.trash, onclick: () => deleteLink(l.id) })
+  );
+  return el('div', { class: 'card' },
+    el('a', { href: safeHref(l.url), target: '_blank', rel: 'noopener noreferrer' }, l.title),
+    el('span', { class: 'host' }, hostOf(l.url)),
+    l.input ? queryForm(l) : null,
+    actions
+  );
+}
+
+/* ---------- Link-Dialog ---------- */
+const linkDialog = $('#linkDialog');
+let editingLink = null;
+
+function openLink(id, gid) {
+  editingLink = id ? state.links.find(l => l.id === id) : null;
+  const sel = $('#linkGroup');
+  sel.replaceChildren(...state.groups.map(g => el('option', { value: g.id }, g.name)));
+  $('#linkHeading').textContent = editingLink ? 'Link bearbeiten' : 'Link hinzufügen';
+  $('#linkTitle').value = editingLink?.title ?? '';
+  $('#linkUrl').value = editingLink?.url ?? '';
+  $('#linkInput').checked = !!editingLink?.input;
+  sel.value = editingLink?.gid ?? gid ?? state.groups[0]?.id;
+  $('#linkError').textContent = '';
+  linkDialog.showModal();
+  $('#linkTitle').focus();
+}
+$('#linkForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const title = $('#linkTitle').value.trim();
+  const url = normalizeUrl($('#linkUrl').value);
+  if (!title) return fail('#linkError', 'Bitte einen Titel angeben.', '#linkTitle');
+  if (!url) return fail('#linkError', 'Bitte eine gültige Web-Adresse angeben (http oder https).', '#linkUrl');
+  const data = { title, url, gid: $('#linkGroup').value, input: $('#linkInput').checked };
+  if (editingLink) Object.assign(editingLink, data);
+  else state.links.push({ id: uid(), ...data });
+  save(); render(); linkDialog.close();
+});
+
+/* ---------- Gruppen-Dialog ---------- */
+const groupDialog = $('#groupDialog');
+let editingGroup = null;
+
+$('#swatches').append(...COLORS.flatMap((c, i) => [
+  el('input', { type: 'radio', name: 'color', id: `col${i}`, value: c }),
+  el('label', { for: `col${i}`, style: `--c:${c}`, title: c, 'aria-label': `Farbe ${i + 1}` })
+]));
+function openGroup(id) {
+  editingGroup = id ? state.groups.find(g => g.id === id) : null;
+  $('#groupHeading').textContent = editingGroup ? 'Gruppe bearbeiten' : 'Neue Gruppe';
+  $('#groupName').value = editingGroup?.name ?? '';
+  const color = editingGroup?.color ?? COLORS[state.groups.length % COLORS.length];
+  document.querySelectorAll('#swatches input').forEach(r => r.checked = r.value === color);
+  $('#groupError').textContent = '';
+  groupDialog.showModal();
+  $('#groupName').focus();
+}
+$('#groupForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#groupName').value.trim();
+  const color = document.querySelector('#swatches input:checked')?.value || COLORS[0];
+  if (!name) return fail('#groupError', 'Bitte einen Namen angeben.', '#groupName');
+  if (state.groups.some(g => g.name.toLowerCase() === name.toLowerCase() && g !== editingGroup))
+    return fail('#groupError', 'Diese Gruppe gibt es schon.', '#groupName');
+  if (editingGroup) Object.assign(editingGroup, { name, color });
+  else state.groups.push({ id: uid(), name, color });
+  save(); render(); groupDialog.close();
+});
+
+function fail(errSel, msg, focusSel) { $(errSel).textContent = msg; $(focusSel).focus(); }
+
+/* Dialoge schließen: Abbrechen-Button und Klick auf den Hintergrund */
+document.querySelectorAll('dialog').forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
+});
+
+/* ---------- Löschen mit Rückgängig ---------- */
+function deleteLink(id) {
+  const snapshot = structuredClone(state);
+  state.links = state.links.filter(l => l.id !== id);
+  save(); render();
+  toast('Link gelöscht.', () => { state = snapshot; save(); render(); });
+}
+function deleteGroup(id) {
+  const g = state.groups.find(g => g.id === id);
+  const n = state.links.filter(l => l.gid === id).length;
+  if (n && !confirm(`Gruppe „${g.name}“ mit ${n} ${n === 1 ? 'Link' : 'Links'} löschen?`)) return;
+  const snapshot = structuredClone(state);
+  state.groups = state.groups.filter(x => x.id !== id);
+  state.links = state.links.filter(l => l.gid !== id);
+  save(); render();
+  toast('Gruppe gelöscht.', () => { state = snapshot; save(); render(); });
+}
+
+/* ---------- Sichern / Laden ---------- */
+$('#export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `link-hub-${new Date().toISOString().slice(0, 10)}.json` });
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$('#import').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!Array.isArray(d.groups) || !Array.isArray(d.links)) throw 0;
+    if (!confirm(`Aktuelle Daten ersetzen? Die Datei enthält ${d.groups.length} Gruppen und ${d.links.length} Links.`)) return;
+    const snapshot = structuredClone(state);
+    state = d.groups.every(g => g.id) ? { groups: d.groups, links: d.links } : migrate(d);
+    save(); render();
+    toast('Daten geladen.', () => { state = snapshot; save(); render(); });
+  } catch (err) { toast('Die Datei konnte nicht gelesen werden.'); }
+});
+
+/* ---------- Suche, Banner, Start ---------- */
+$('#search').addEventListener('input', e => { query = e.target.value; render(); });
+$('#newGroup').addEventListener('click', () => openGroup());
+
+/* Hub-Titel und Umschalter */
+if (HUB) { $('#title').textContent = `Link-Hub: ${HUB}`; document.title = `Link-Hub: ${HUB}`; }
+(function hubSwitcher() {
+  const names = new Set(HUB ? [HUB] : []);
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(PREFIX + ':')) names.add(k.slice(PREFIX.length + 1));
+    }
+  } catch (e) { /* Speicher blockiert */ }
+  const sel = $('#hubSelect');
+  sel.append(el('option', { value: '' }, 'Standard'),
+    ...[...names].sort().map(n => el('option', { value: n }, n)),
+    el('option', { value: '\u0000new' }, '+ Neuer Hub …'));
+  sel.value = HUB;
+  sel.addEventListener('change', () => {
+    let v = sel.value;
+    if (v === '\u0000new') {
+      v = (prompt('Name des neuen Hubs:') || '').trim().toLowerCase().slice(0, 40);
+      if (!v) { sel.value = HUB; return; }
+    }
+    const u = new URL(location.href);
+    u.search = v ? '?hub=' + encodeURIComponent(v) : '';
+    location.href = u.toString();
+  });
+})();
+
+const bannerText = new URLSearchParams(location.search).get('text');
+if (bannerText) {
+  $('#bannerText').textContent = bannerText;
+  $('#bannerCopy').innerHTML = ICON.copy;
+  $('#bannerCopy').addEventListener('click', e => copyText(bannerText, e.currentTarget));
+  $('#banner').hidden = false;
+}
+render();
+</script>
+</body>
+</html>
